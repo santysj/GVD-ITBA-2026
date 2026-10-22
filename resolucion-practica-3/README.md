@@ -12,7 +12,7 @@ Respondé cada pregunta en una a tres oraciones. Cuando se pide un dato, copiá 
 
 **2.** En **modo CP**, se mantuvo el saldo escrito sobre la mayoría de los nodos, que es el que llegó a los nodos A y B, mientras que se perdió el _write saldo = 50_ que se había ejecutado sobre el nodo minoritario C (en realidad, nunca se registró por falta de quórum). Por el otro lado, en **modo AP** el saldo que quedó luego de la reparación es el que produjo el _write = 50_ sobre C, pues fue el último saldo escrito, que en este caso prepondera sobre el quórum como criterio (_last-write-wins_). 
 
-**3.** Según el gráfico, la latencia de W=1 es, con p99, **9.6 ms**, mientras que la latencia de "=3 con p99 es **55.6 ms**
+**3.** Según el gráfico, la latencia de W=1 es, con p99, **9.6 ms**, mientras que la latencia de "=3 con p99 es **55.6 ms**. Se gana consistencia: con W=3 la escritura queda en todas las réplicas y cualquier lectura ve el dato nuevo. Ese es el trade-off latencia/consistencia de PACELC.
 
 **4.** Sólo pudo seguir escribiendo el lado ABC, pues es la mayoría (el que logra quórum). 
 
@@ -22,7 +22,7 @@ Respondé cada pregunta en una a tres oraciones. Cuando se pide un dato, copiá 
 
 **6.** Hubo que leer y parsear todos los valores porque la estructura clave-valor no "muestra a simple vista" los valores, sino sólo las claves, lo que quiere decir que para conocer los valores de un objeto, hay que leerlo en el momento. Como AR es un valor –no una clave–, hay que leer todos los objetos; parsearlos sirve para tener que hacerlo sólo una vez, en la que mandás las claves con valor AR a un set. 
 
-**7.** Con **hash mod N** se movió un 79.6% de las claves, mientras que con **hashing consistente** se se movió un 21.2%. Conviene **hashing consistente** porque los nodos equilibrados garantizan un procesamiento eficiente y homogéneo: todos los nodos son igual de grandes, todos operables a un mismo nivel de complejidad. Como contraste, con **hash mod N** quedan nodos desbalanceados, algunos sobrecargados, otros con muy poca información; la velocidad y complejidad de operación se vuelve muy variable, dependiendo del nodo con el que te toque trabajar. 
+**7.** Con **hash mod N** se movió un 79.6% de las claves, mientras que con **hashing consistente** se se movió un 21.2%. Ell **hashing consistente** conviene porque al agregar un nodo solo se mueven las claves del tramo del anillo que toma el nodo nuevo (más o menos 1/(N+1)), en vez de casi todas. El equilibrio de carga lo dan los nodos virtuales, pero la ventaja principal es mover pocos datos.
 
 ## Documental
 
@@ -46,9 +46,9 @@ Respondé cada pregunta en una a tres oraciones. Cuando se pide un dato, copiá 
 
 ## Vectorial
 
-**16.** El vector de cada cliente tiene n dimensiones y representa los n atributos que le corresponden (lo que sería los campos). La similitud coseno mide qué tanto se parece (el vector de) un cliente a(l del) otro: si la similitud vale 1, los vectores son iguales. 
+**16.** El vector de cada cliente tiene n dimensiones y son 10 números que resumen el comportamiento: proporción del gasto por categoría, proporción de pagos por canal, ticket promedio y proporción de compras grandes.
 
-**17.** Hay un 31.6% de vecinos de marcados que está marcado. Sirve buscar vecinos parecidos porque permite analizar/predecir comportamientos: «si A y B son vecinos y sé que A es X, probablemente B también sea X».
+**17.** Hay un 31.6% de vecinos de marcados que está marcado. Sirve buscar vecinos parecidos porque permite analizar/predecir comportamientos: «si A y B son vecinos y sé que A es X, probablemente B también sea X». Ese 31.6% se compara contra la tasa base (14.8%).
 
 **18.** Con **nprobe=4** se escanea un 5.985% de los vectores y un recall de 0.872. Se gana en costo computacional, pero se paga el costo de pasar por alto vecinos verdaderos. 
 
