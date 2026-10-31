@@ -90,22 +90,22 @@ flowchart LR
 
     subgraph FUENTES["1. FUENTES DE DATOS"]
         direction TB
-        P["Polymarket API / Webhooks"]
-        A["Atlas Intel / World Bank / Anthropic"]
+        P["API de Polymarket / Webhooks"]
+        A["Atlas Intel / Banco Mundial / Anthropic"]
         S["Skill Salaries (CSV / Kaggle)"]
     end
 
     subgraph INGESTA["2. INGESTA"]
         direction TB
-        K["Kafka<br/>Streaming"]
-        E["Python Extractors<br/>Batch"]
+        K["Kafka<br/>Procesamiento en flujo"]
+        E["Extractores en Python<br/>Procesamiento por lotes"]
     end
 
-    subgraph LAKE["3. LAKEHOUSE (S3 + DELTA LAKE)"]
+    subgraph LAKE["3. ARQUITECTURA LAKEHOUSE (S3 + DELTA LAKE)"]
         direction TB
-        B["BRONZE LAYER<br/>Raw Delta Tables<br/>Append-only"]
-        SI["SILVER LAYER<br/>Cleaned, Validated & Joined Data"]
-        G["GOLD LAYER<br/>Business Aggregations<br/>Analytical Data Models"]
+        B["BRONCE<br/>Tablas Delta sin procesar<br/>Solo anexado"]
+        SI["PLATA<br/>Limpieza, estandarización,<br/>validación y resolución de entidades"]
+        G["ORO<br/>Agregaciones de negocio<br/>Modelos analíticos"]
 
         B -->|"Spark / PySpark"| SI
         SI -->|"SQL / PySpark"| G
@@ -113,17 +113,17 @@ flowchart LR
 
     subgraph BI["4. CONSUMO ANALÍTICO"]
         direction TB
-        SQL["SQL Queries"]
+        SQL["Consultas SQL"]
         POWER["Power BI / Tableau"]
         SQL --> POWER
     end
 
-    subgraph MLOPS["5. MACHINE LEARNING / MLOPS"]
+    subgraph MLOPS["5. APRENDIZAJE AUTOMÁTICO / MLOPS"]
         direction TB
-        FS["Feature Store<br/>Feature Management"]
-        TRAIN["Model Training"]
-        MLF["MLflow<br/>Experiment Tracking / Model Registry"]
-        SERVE["Model Serving<br/>Inference API"]
+        FS["Almacén de características<br/>(Feature Store)"]
+        TRAIN["Entrenamiento de modelos"]
+        MLF["MLflow<br/>Seguimiento de experimentos<br/>y registro de modelos"]
+        SERVE["Servicio de modelos<br/>API de inferencia"]
 
         FS --> TRAIN
         TRAIN --> MLF
@@ -131,12 +131,12 @@ flowchart LR
     end
 
     subgraph ORQ["ORQUESTACIÓN"]
-        AF["Apache Airflow<br/>Workflow Scheduling & Monitoring"]
+        AF["Apache Airflow<br/>Programación y supervisión<br/>de flujos de trabajo"]
     end
 
-    P -->|"Events"| K
-    A -->|"API Extraction"| E
-    S -->|"File Extraction"| E
+    P -->|"Eventos"| K
+    A -->|"Extracción mediante API"| E
+    S -->|"Lectura de archivos"| E
 
     K --> B
     E --> B
@@ -146,12 +146,12 @@ flowchart LR
     SI --> FS
     G --> FS
 
-    SERVE -.->|"Predictions"| POWER
+    SERVE -.->|"Predicciones"| POWER
 
-    AF -.->|"Orchestrates"| E
-    AF -.->|"Orchestrates"| SI
-    AF -.->|"Orchestrates"| G
-    AF -.->|"Orchestrates"| TRAIN
+    AF -.->|"Coordina"| E
+    AF -.->|"Coordina"| SI
+    AF -.->|"Coordina"| G
+    AF -.->|"Coordina"| TRAIN
 
     style B fill:#cd7f32,color:#fff,stroke:#8b5a2b
     style SI fill:#c0c0c0,color:#000,stroke:#808080
@@ -225,5 +225,17 @@ erDiagram
 | **Latencia** | Streaming híbrido (Kafka + Airflow) | Inmediatez sub-segundo para datos de mercado combinada con eficiencia de costo para datos macro batch. | Mayor complejidad de diseño al mantener dos vías de ingesta. |
 | **Gobierno y Seguridad** | Unity Catalog / Great Expectations | Garantiza control RBAC por celda/columna y evita el ingreso de registros con esquemas corruptos. | Sobrecarga administrativa inicial en la definición de políticas de gobierno. |
 
+
+## 6. Gráficos y diagramas explicativos
+
+#### Gráfico 1: Dinámica Teórica del Mercado de Predicción vs. Encuestas Atlas Intel
+```mermaid
+xychart-beta
+    title "Evolución de probabilidades: Polymarket vs. Atlas Intel"
+    x-axis ["Incertidumbre", "Rumor", "Evento", "Corrección", "Convergencia", "Settlement"]
+    y-axis "Probabilidad (%)" 0 --> 100
+    line [25, 50, 50, 50, 80, 100]
+    line [25, 50, 75, 50, 75, 75]
+```
 
 
