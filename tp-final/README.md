@@ -239,3 +239,10 @@ xychart-beta
 ```
 
 
+#### Gráfico 2: Matriz de Riesgo Regulatorio por Sector (Estimada)
+| Exposición a IA / Impacto político | Bajo impacto político | Alto impacto político |
+|:---|:---:|:---:|
+| **Alta exposición a IA** | **Finanzas**<br/>Riesgo moderado | **Software / IA**<br/>Riesgo crítico (IDR-PR > 80) |
+| **Baja exposición a IA** | **Manufactura**<br/>Riesgo bajo | **Energía**<br/>Riesgo moderado |
+
+
