@@ -37,17 +37,17 @@
 
 
 ## Datos 
-#### Mapa de fuentes y características
+#### Fuentes y características
 
 | Fuente de datos | Tipo y formato | Volumen estimado | Frecuencia de llegada |
 |---|---|---|---|
-| **Polymarket Data** (`SII-WANGZJ/Polymarket_data`) | Semiestructurado (JSON / Parquet) | ~15 GB por día (~2M tx) | Event-driven (Websockets) |
-| **Atlas Intel Polls Data** (API / Web scraping de microdatos RDR) | Semiestructurado (JSON / CSV) | ~2 GB (Histórico y microdatos) | Diaria / Eventual |
+| **Polymarket Data** (`SII-WANGZJ/Polymarket_data`) | (semi)estructurado (JSON / Parquet) | ~15 GB por día (~2M tx) | Event-driven (Websockets) |
+| **Atlas Intel Polls Data** (API / Web scraping de microdatos RDR) | (semi)estructurado (JSON / CSV) | ~2 GB (Histórico y microdatos) | Diaria / Eventual |
 | **World Bank Indicators** (`ContextNews/world-bank-indicators`) | Estructurado (Parquet / CSV) | ~500 MB (Histórico) | Anual / Trimestral |
-| **Anthropic Economic Index** (`Anthropic/EconomicIndex`) | Estructurado (JSON / Parquet) | ~2 GB (Procesado) | Mensual / Semanal |
+| **Anthropic Economic Index** (`Anthropic/EconomicIndex`) | (semi)estructurado (JSON / Parquet) | ~2 GB (Procesado) | Mensual / Semanal |
 | **Global Skill & Salary Percentile** (`harshitkz/skill-salary-percentiles-global`) | Estructurado (CSV) | ~1 GB (Estático) | Semestral |
 
-#### Diferenciación de datos disponibles vs. supuestos estimados
+#### Datos disponibles vs. supuestos estimados
 > - **Datos Disponibles (Observados):**
 >   - Histórico de precios, volúmenes y transacciones ejecutadas en Polymarket.
 >   - Encuestas de alta frecuencia e intención de voto geolocalizada de Atlas Intel.
@@ -87,47 +87,143 @@
 #### Diagrama de arquitectura
 ```mermaid
 flowchart LR
-    subgraph FUENTES["FUENTES DE DATOS"]
+
+    subgraph FUENTES["1. FUENTES DE DATOS"]
         direction TB
-        P["Polymarket API / Webhook"]
+        P["Polymarket API / Webhooks"]
         A["Atlas Intel / World Bank / Anthropic"]
         S["Skill Salaries (CSV / Kaggle)"]
     end
 
-    subgraph INGESTA["INGESTA"]
+    subgraph INGESTA["2. INGESTA"]
         direction TB
-        K["Kafka / Databricks Auto Loader"]
-        AF["Apache Airflow / Orchestrator"]
+        K["Kafka<br/>Streaming"]
+        E["Python Extractors<br/>Batch"]
     end
 
-    subgraph LAKE["LAKEHOUSE (DELTA LAKE / S3)"]
+    subgraph LAKE["3. LAKEHOUSE (S3 + DELTA LAKE)"]
         direction TB
-        B["BRONZE LAYER<br/>Raw Delta Tables (Append-only)"]
-        SI["SILVER LAYER<br/>Cleaned, Filtered & Joined Data"]
-        G["GOLD LAYER<br/>Business Aggregations & IDR-PR"]
+        B["BRONZE LAYER<br/>Raw Delta Tables<br/>Append-only"]
+        SI["SILVER LAYER<br/>Cleaned, Validated & Joined Data"]
+        G["GOLD LAYER<br/>Business Aggregations<br/>Analytical Data Models"]
 
-        B -->|"PySpark / Delta"| SI
-        SI -->|"Feature Store"| G
+        B -->|"Spark / PySpark"| SI
+        SI -->|"SQL / PySpark"| G
     end
 
-    subgraph CONSUMO["CONSUMO"]
+    subgraph BI["4. CONSUMO ANALÍTICO"]
         direction TB
-        BI["Power BI / Tableau"]
+        SQL["SQL Queries"]
+        POWER["Power BI / Tableau"]
+        SQL --> POWER
     end
 
-    P -->|"Stream"| K
-    A -->|"Batch"| AF
-    S -->|"Feature Store"| SI
+    subgraph MLOPS["5. MACHINE LEARNING / MLOPS"]
+        direction TB
+        FS["Feature Store<br/>Feature Management"]
+        TRAIN["Model Training"]
+        MLF["MLflow<br/>Experiment Tracking / Model Registry"]
+        SERVE["Model Serving<br/>Inference API"]
+
+        FS --> TRAIN
+        TRAIN --> MLF
+        MLF --> SERVE
+    end
+
+    subgraph ORQ["ORQUESTACIÓN"]
+        AF["Apache Airflow<br/>Workflow Scheduling & Monitoring"]
+    end
+
+    P -->|"Events"| K
+    A -->|"API Extraction"| E
+    S -->|"File Extraction"| E
 
     K --> B
-    AF --> SI
+    E --> B
 
-    G -->|"SQL Queries"| BI
+    G --> SQL
 
-    G --> M["MLflow / Feature Store<br/>Servidor de Modelos MLOps"]
+    SI --> FS
+    G --> FS
+
+    SERVE -.->|"Predictions"| POWER
+
+    AF -.->|"Orchestrates"| E
+    AF -.->|"Orchestrates"| SI
+    AF -.->|"Orchestrates"| G
+    AF -.->|"Orchestrates"| TRAIN
 
     style B fill:#cd7f32,color:#fff,stroke:#8b5a2b
     style SI fill:#c0c0c0,color:#000,stroke:#808080
     style G fill:#d4af37,color:#000,stroke:#997a00
-    style M fill:#6b5b95,color:#fff,stroke:#483d8b
+    style FS fill:#3979a8,color:#fff,stroke:#245477
+    style MLF fill:#6b5b95,color:#fff,stroke:#483d8b
+    style SERVE fill:#6b5b95,color:#fff,stroke:#483d8b
 ```
+
+
+## 4. Modelado de datos
+
+#### Estructura del modelo dimensional (Star Schema - Capa Gold)
+```mermaid
+erDiagram
+
+    DIM_TIEMPO ||--o{ FACT_POLITICAL_RISK : registra
+    DIM_PAIS_MACRO ||--o{ FACT_POLITICAL_RISK : corresponde
+    DIM_SECTOR_OCUPACION ||--o{ FACT_POLITICAL_RISK : clasifica
+
+    DIM_TIEMPO {
+        int id_tiempo PK
+        date fecha
+        int hora
+        int minuto
+        string dia_semana
+        int trimestre
+        int anio
+    }
+
+    DIM_PAIS_MACRO {
+        string id_pais PK
+        string nombre_pais
+        float pib_usd
+        float crecimiento_pib_porcentaje
+        float tasa_desempleo
+        float gasto_id_porcentaje
+        float aprobacion_atlas_intel
+    }
+
+    DIM_SECTOR_OCUPACION {
+        int id_sector PK
+        string nombre_sector
+        string codigo_soc
+        float indice_exposicion_ia
+        float percentil_salario_mediano
+    }
+
+    FACT_POLITICAL_RISK {
+        int id_observacion PK
+        string id_evento_mercado
+        string id_pais FK
+        int id_sector FK
+        int id_tiempo FK
+        float probabilidad_polymarket
+        float probabilidad_atlas_intel
+        float volumen_usd_24h
+        float variacion_prob_1h
+        float score_riesgo_calculado
+    }
+```
+
+## 5. Justificación
+
+#### Tabla de decisiones técnicas y compromisos
+
+| Dimensión | Decisión Adoptada | Fundamento Teórico / Técnico | Compromisos y Limitaciones |
+|---|---|---|---|
+| **Escala y Cómputo** | Apache Spark / Databricks | Escalabilidad horizontal para millones de eventos diarios sin saturar memoria. | Mayor costo operativo de clústeres si no se aplica *auto-termination*. |
+| **Almacenamiento** | Delta Lake (Parquet + ACID Log) | Permite viajes en el tiempo (*time travel*), control transaccional e indexación Z-Ordering. | Requiere mantenimiento periódico (*VACUUM* / *OPTIMIZE*). |
+| **Latencia** | Streaming híbrido (Kafka + Airflow) | Inmediatez sub-segundo para datos de mercado combinada con eficiencia de costo para datos macro batch. | Mayor complejidad de diseño al mantener dos vías de ingesta. |
+| **Gobierno y Seguridad** | Unity Catalog / Great Expectations | Garantiza control RBAC por celda/columna y evita el ingreso de registros con esquemas corruptos. | Sobrecarga administrativa inicial en la definición de políticas de gobierno. |
+
+
+
