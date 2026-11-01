@@ -19,7 +19,7 @@
 > - **Incapacidad de reacción** (imposible ajustarse en tiempo real ante eventos de gran e inmediato impacto). 
 
 #### Objetivo 
-> Desarrollar una plataforma de Big Data que procese el flujo en tiempo real de mercados de predicción (Prediction Markets) y los relacione con indicadores socioeconómicos estructurales y la adopción de tecnologías estratégicas. La plataforma construirá un Índice Dinámico de Riesgo Político y Regulatorio (IDR-PR) para guiar la asignación de activos y la estrategia de cobertura en tiempo real. \
+> Desarrollar una plataforma de Big Data que procese el flujo en tiempo real de mercados de predicción (Prediction Markets) y los relacione con indicadores socioeconómicos estructurales y la adopción de tecnologías estratégicas. Además, la plataforma construiría un Índice Dinámico de Riesgo Político y Regulatorio (IDR-PR) para guiar la asignación de activos y la estrategia de cobertura en tiempo real. \
 > \
 > *NOTA:* \
 > Cómo se define el IDR-PR es inexplicable ex-ante, pues viene a ser la función del modelo de ML, por lo que se trata de una caja negra; operativamente, viene a ser una métrica sintética que expresa el nivel de riesgo político y regulatorio asociado a un país, sector o conjunto de activos. Se representa mediante una escala de 0 a 100 en la que *0 = riesgo mínimo* y *100 = riesgo máximo*. El índice permite sintetizar la información procesada por la plataforma y facilitar la comparación de niveles de riesgo entre países, sectores y períodos. Su finalidad es funcionar como indicador de apoyo para la toma de decisiones de inversión y la planificación de estrategias de cobertura.)
