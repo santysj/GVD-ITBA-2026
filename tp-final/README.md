@@ -22,7 +22,7 @@
 > Desarrollar una plataforma de Big Data que procese el flujo en tiempo real de mercados de predicción (Prediction Markets) y los relacione con indicadores socioeconómicos estructurales y la adopción de tecnologías estratégicas. La plataforma construirá un Índice Dinámico de Riesgo Político y Regulatorio (IDR-PR) para guiar la asignación de activos y la estrategia de cobertura en tiempo real. \
 > \
 > *NOTA:* \
-> La definición concreta del IDR-PR escapa a los fines del trabajo; operativamente, viene a ser una métrica sintética que expresa el nivel de riesgo político y regulatorio asociado a un país, sector o conjunto de activos. Se representa mediante una escala de 0 a 100 en la que 0 = riesgo mínimo y 100 = riesgo máximo. El índice permite sintetizar la información procesada por la plataforma y facilitar la comparación de niveles de riesgo entre países, sectores y períodos. Su finalidad es funcionar como indicador de apoyo para la toma de decisiones de inversión y la planificación de estrategias de cobertura.)
+> Cómo se define el IDR-PR es inexplicable ex-ante, pues viene a ser la función del modelo de ML, por lo que se trata de una caja negra; operativamente, viene a ser una métrica sintética que expresa el nivel de riesgo político y regulatorio asociado a un país, sector o conjunto de activos. Se representa mediante una escala de 0 a 100 en la que *0 = riesgo mínimo* y *100 = riesgo máximo*. El índice permite sintetizar la información procesada por la plataforma y facilitar la comparación de niveles de riesgo entre países, sectores y períodos. Su finalidad es funcionar como indicador de apoyo para la toma de decisiones de inversión y la planificación de estrategias de cobertura.)
 
 #### Beneficios esperados
 > 1. Optimización de coberturas (_hedging_), que se traduce en reducir las pérdidas de capital durante eventos de alta volatilidad política (por ejemplo, elecciones).
@@ -88,7 +88,7 @@
 > - **Orquestación:** Apache Airflow para gestión de dependencias y flujos batch.
 > - **Calidad de Datos:** Great Expectations integrado en la capa Silver para validación automática de esquemas y rangos.
 > - **Gobierno y Catálogo:** Unity Catalog (Databricks) para control de acceso granular (RBAC) y linaje del dato.
-> - **Visualización:** Power BI / Databricks SQL Dashboards mediante DirectQuery conectado a la capa Gold.
+> - **Visualización:** Power BI para la capa Gold.
 
 #### Diagrama de arquitectura
 ```mermaid
