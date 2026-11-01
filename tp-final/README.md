@@ -13,18 +13,21 @@
 > - Comité de inversiones
 
 #### Problema actual
-> Las decisiones de inversión frente a eventos políticos, desde elecciones o aprobaciones de leyes hasta regulaciones tecnológicas (por ejemplo, de IA) o cambios de tasas de interés, dependen altamente de encuestas tradicionales o reportes de consultoría política. Pero esta metodología presenta limitaciones: \
-> - _Alta latencia._ 
-> - _Sesgo de respuesta_ (desfase entre opinión declarada y comportamiento real). 
-> - _Incapacidad de reacción_ (imposible ajustarse en tiempo real ante eventos de gran e inmediato impacto). 
+> Las decisiones de inversión frente a eventos políticos, desde elecciones o aprobaciones de leyes hasta regulaciones tecnológicas (por ejemplo, de IA) o cambios de tasas de interés, dependen altamente de encuestas tradicionales o reportes de consultoría política. Pero esta metodología presenta limitaciones: 
+> - **Alta latencia**.
+> - **Desfase** entre opinión declarada en una encuesta y comportamiento real. 
+> - **Incapacidad de reacción** (imposible ajustarse en tiempo real ante eventos de gran e inmediato impacto). 
 
 #### Objetivo 
-> Desarrollar una plataforma de Big Data que procese el flujo en tiempo real de mercados de predicción (Prediction Markets) y los relacione con indicadores socioeconómicos estructurales y la adopción de tecnologías estratégicas. La plataforma construirá un Índice Dinámico de Riesgo Político y Regulatorio (IDR-PR) para guiar la asignación de activos y la estrategia de cobertura en tiempo real.
+> Desarrollar una plataforma de Big Data que procese el flujo en tiempo real de mercados de predicción (Prediction Markets) y los relacione con indicadores socioeconómicos estructurales y la adopción de tecnologías estratégicas. La plataforma construirá un Índice Dinámico de Riesgo Político y Regulatorio (IDR-PR) para guiar la asignación de activos y la estrategia de cobertura en tiempo real. \
+> \
+> *NOTA:* \
+> La definición concreta del IDR-PR escapa a los fines del trabajo; operativamente, viene a ser una métrica sintética que expresa el nivel de riesgo político y regulatorio asociado a un país, sector o conjunto de activos. Se representa mediante una escala de 0 a 100 en la que 0 = riesgo mínimo y 100 = riesgo máximo. El índice permite sintetizar la información procesada por la plataforma y facilitar la comparación de niveles de riesgo entre países, sectores y períodos. Su finalidad es funcionar como indicador de apoyo para la toma de decisiones de inversión y la planificación de estrategias de cobertura.)
 
 #### Beneficios esperados
 > 1. Optimización de coberturas (_hedging_), que se traduce en reducir las pérdidas de capital durante eventos de alta volatilidad política (por ejemplo, elecciones).
 > 2. Anticiparse a cambios en la cotización de activos mediante la detección temprana de desplazamientos de probabilidad en eventos políticos clave (por ejemplo, regulaciones).
-> 3. Automatizar procesamientos tradicionalmente manuales, que se traduce en reducción de falibilidad y tiempo (y, probablemente, empleados).
+> 3. Automatizar procesamientos tradicionalmente manuales, que se traduce en reducción de falibilidad y tiempo (y, probablemente, de costos fijos mediante la reducción de empleados).
 
 #### Evaluación de éxito
 > El éxito de la propuesta se evaluaría de varias maneras, yendo de la validación técnica en desarrollo hasta el impacto económico, pasando por el rendimiento en producción:
@@ -41,11 +44,14 @@
 
 | Fuente de datos | Tipo y formato | Volumen estimado | Frecuencia de llegada |
 |---|---|---|---|
-| **Polymarket Data** (`SII-WANGZJ/Polymarket_data`) | (semi)estructurado (JSON / Parquet) | ~15 GB por día (~2M tx) | Event-driven (Websockets) |
-| **Atlas Intel Polls Data** (API / Web scraping de microdatos RDR) | (semi)estructurado (JSON / CSV) | ~2 GB (Histórico y microdatos) | Diaria / Eventual |
+| **Polymarket Data** (CLOB API)*| Semiestructurado (JSON) | ~15 GB por día (~2M tx) | Event-driven (Websockets) |
+| **Atlas Intel Polls Data** (API / Web scraping de microdatos RDR) | (semi)estructurado (JSON / CSV) | ~2 GB (Histórico y microdatos) | Eventual*\*|
 | **World Bank Indicators** (`ContextNews/world-bank-indicators`) | Estructurado (Parquet / CSV) | ~500 MB (Histórico) | Anual / Trimestral |
 | **Anthropic Economic Index** (`Anthropic/EconomicIndex`) | (semi)estructurado (JSON / Parquet) | ~2 GB (Procesado) | Mensual / Semanal |
 | **Global Skill & Salary Percentile** (`harshitkz/skill-salary-percentiles-global`) | Estructurado (CSV) | ~1 GB (Estático) | Semestral |
+
+\* Además, en Hugging Face hay un dataset de Polymarket no streaming (`SII-WANGZJ/Polymarket_data`) que se usaría para entrenar para los modelos.\
+\** Atlas Intel cuenta con dos formas de relevo de datos: una mensual para índices de aprobación y economía; otra en función de procesos electorales, que va desde actualizaciones quincenales a diarias cuando se acerca uno. 
 
 #### Datos disponibles vs. supuestos estimados
 > - **Datos Disponibles (Observados):**
@@ -66,7 +72,7 @@
 
 #### Recorrido de los datos (Capa por capa - Medallion Architecture)
 > 1. **Ingesta (Streaming & Batch):**
->    - _Streaming:_ Apache Kafka / Databricks Auto Loader consumiendo datos *event-driven* desde los WebSockets de Polymarket.
+>    - _Streaming:_ Apache Kafka para datos *event-driven* desde los WebSockets de Polymarket.
 >    - _Batch:_ DAGs programados en Apache Airflow descargando datasets de Atlas Intel, Hugging Face y Banco Mundial via API/REST.
 > 2. **Capa Bronze (Raw Data):**
 >    - Almacenamiento en AWS S3 en formato Delta Lake nativo. Persistencia *Append-only* agregando metadatos de auditoría (`_ingested_at`, `_source_file`).
@@ -165,12 +171,23 @@ flowchart LR
 ## 4. Modelado de datos
 
 #### Estructura del modelo dimensional (Star Schema - Capa Gold)
+#### Estructura del modelo dimensional (Star Schema - Capa Gold)
+
+El modelo dimensional contempla dos granularidades temporales:
+- **FACT_POLITICAL_RISK:** una observación por mercado de predicción, país, sector y minuto.
+- **FACT_INDICADORES_MACRO:** una observación por país y período de referencia (anual o trimestral).
+
+Esta separación permite conservar la evolución histórica de los indicadores macroeconómicos sin sobrescribir valores anteriores.
+
 ```mermaid
 erDiagram
 
     DIM_TIEMPO ||--o{ FACT_POLITICAL_RISK : registra
-    DIM_PAIS_MACRO ||--o{ FACT_POLITICAL_RISK : corresponde
+    DIM_PAIS ||--o{ FACT_POLITICAL_RISK : corresponde
     DIM_SECTOR_OCUPACION ||--o{ FACT_POLITICAL_RISK : clasifica
+
+    DIM_PAIS ||--o{ FACT_INDICADORES_MACRO : registra
+    DIM_PERIODO ||--o{ FACT_INDICADORES_MACRO : referencia
 
     DIM_TIEMPO {
         int id_tiempo PK
@@ -182,14 +199,9 @@ erDiagram
         int anio
     }
 
-    DIM_PAIS_MACRO {
+    DIM_PAIS {
         string id_pais PK
         string nombre_pais
-        float pib_usd
-        float crecimiento_pib_porcentaje
-        float tasa_desempleo
-        float gasto_id_porcentaje
-        float aprobacion_atlas_intel
     }
 
     DIM_SECTOR_OCUPACION {
@@ -200,19 +212,47 @@ erDiagram
         float percentil_salario_mediano
     }
 
+    DIM_PERIODO {
+        int id_periodo PK
+        int anio
+        int trimestre
+        string tipo_periodo
+        date fecha_inicio
+        date fecha_fin
+    }
+
+    FACT_INDICADORES_MACRO {
+        int id_observacion_macro PK
+        string id_pais FK
+        int id_periodo FK
+        float pib_usd
+        float crecimiento_pib_porcentaje
+        float tasa_desempleo
+        float gasto_id_porcentaje
+    }
+
     FACT_POLITICAL_RISK {
         int id_observacion PK
         string id_evento_mercado
         string id_pais FK
         int id_sector FK
         int id_tiempo FK
-        float probabilidad_polymarket
-        float probabilidad_atlas_intel
+        float senal_mercado_polymarket
+        float senal_opinion_publica_atlas
         float volumen_usd_24h
         float variacion_prob_1h
         float score_riesgo_calculado
     }
 ```
+
+**Criterios de modelado:**
+
+- **DIM_PAIS:** contiene un registro por país, identificado mediante su código ISO-3. Se limita a atributos relativamente estables.
+- **DIM_PERIODO:** identifica los períodos de referencia de los indicadores macroeconómicos, que pueden ser anuales o trimestrales.
+- **FACT_INDICADORES_MACRO:** conserva las observaciones históricas de PIB, crecimiento económico, desempleo y gasto en I+D para cada país y período.
+- **FACT_POLITICAL_RISK:** conserva las observaciones de los mercados de predicción y las señales de opinión pública, con granularidad de mercado, país, sector y minuto.
+
+La separación entre dimensiones y tablas de hechos permite analizar la evolución del riesgo político en relación con las condiciones macroeconómicas vigentes en cada período, sin perder información histórica cuando se actualizan los indicadores.
 
 ## 5. Justificación
 
@@ -228,15 +268,21 @@ erDiagram
 
 ## 6. Gráficos y diagramas explicativos
 
-#### Gráfico 1: Dinámica Teórica del Mercado de Predicción vs. Encuestas Atlas Intel
+#### Gráfico 1: Evolución de señales de riesgo político
+
 ```mermaid
 xychart-beta
-    title "Evolución de probabilidades: Polymarket vs. Atlas Intel"
+    title "Evolución de señales de riesgo político"
     x-axis ["Incertidumbre", "Rumor", "Evento", "Corrección", "Convergencia", "Settlement"]
-    y-axis "Probabilidad (%)" 0 --> 100
+    y-axis "Intensidad de la señal (%)" 0 --> 100
     line [25, 50, 50, 50, 80, 100]
     line [25, 50, 75, 50, 75, 75]
 ```
+
+- **Primera serie:** Polymarket — señal del mercado de predicción.
+- **Segunda serie:** Atlas Intel — señal de opinión pública.
+
+> **Aclaración metodológica:** Las curvas representan una evolución hipotética de dos señales de distinta naturaleza. Sus valores son ilustrativos y no implican que ambas fuentes midan probabilidades equivalentes. Su análisis conjunto permite identificar convergencias, divergencias temporales y cambios en las expectativas de los actores.
 
 
 #### Gráfico 2: Matriz de Riesgo Regulatorio por Sector (Estimada)
